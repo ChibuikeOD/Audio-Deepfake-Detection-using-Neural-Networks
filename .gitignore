@@ -1,0 +1,14 @@
+*.dat
+__pycache__/
+*.pyc
+node_modules/
+.next/
+*.wav
+.env*
+temp_converted.wav
+synthetic_audio.wav
+.ipynb_checkpoints/
+*Zone.Identifier
+*zone.identifier
+*:Zone.Identifier
+*Zone.Identifier

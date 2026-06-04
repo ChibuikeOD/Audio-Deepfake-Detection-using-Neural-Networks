@@ -1,0 +1,10 @@
+fastapi
+uvicorn
+python-multipart
+tensorflow-cpu
+tensorflow-hub
+transformers<5.0
+scipy
+pydub
+soundfile
+numpy

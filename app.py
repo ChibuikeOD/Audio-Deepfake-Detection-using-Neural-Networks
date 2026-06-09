@@ -29,16 +29,19 @@ yamnet_model = None
 tokenizer = None
 bert_model = None
 fusion_model = None
+load_errors = {}
 
 @app.on_event("startup")
 def load_models():
-    global yamnet_model, tokenizer, bert_model, fusion_model
+    global yamnet_model, tokenizer, bert_model, fusion_model, load_errors
+    load_errors = {}
     print("Loading YAMNet, BERT, and Keras Fusion models...")
     
     # Load YAMNet
     try:
         yamnet_model = hub.load("https://tfhub.dev/google/yamnet/1")
     except Exception as e:
+        load_errors["yamnet"] = str(e)
         print(f"Error loading YAMNet: {e}")
         
     # Load BERT
@@ -46,6 +49,7 @@ def load_models():
         tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
         bert_model = TFBertModel.from_pretrained("bert-base-uncased")
     except Exception as e:
+        load_errors["bert"] = str(e)
         print(f"Error loading BERT: {e}")
         
     # Load Keras model
@@ -58,8 +62,10 @@ def load_models():
         try:
             fusion_model = tf.keras.models.load_model(model_file)
         except Exception as e:
+            load_errors["keras_model"] = str(e)
             print(f"Error loading Keras model: {e}")
     else:
+        load_errors["keras_model"] = "No Keras model found."
         print("Warning: No Keras model found. /predict will fail.")
 
 # =====================================================================
@@ -92,7 +98,8 @@ def health_check():
         "status": "healthy",
         "yamnet_loaded": yamnet_model is not None,
         "bert_loaded": bert_model is not None,
-        "keras_model_loaded": fusion_model is not None
+        "keras_model_loaded": fusion_model is not None,
+        "load_errors": load_errors
     }
     return status
 
@@ -101,7 +108,15 @@ async def predict(file: UploadFile = File(...)):
     if not fusion_model:
         raise HTTPException(status_code=503, detail="Keras classification model not loaded on server.")
     if not yamnet_model or not bert_model:
-        raise HTTPException(status_code=503, detail="Feature extraction models (YAMNet/BERT) not loaded.")
+        raise HTTPException(
+            status_code=503,
+            detail={
+                "message": "Feature extraction models (YAMNet/BERT) not loaded.",
+                "yamnet_loaded": yamnet_model is not None,
+                "bert_loaded": bert_model is not None,
+                "load_errors": load_errors,
+            },
+        )
 
     suffix = os.path.splitext(file.filename)[1].lower()
     if suffix not in [".wav", ".m4a", ".mp3", ".flac"]:

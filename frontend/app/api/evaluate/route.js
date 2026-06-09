@@ -130,7 +130,7 @@ function parseVerdict(text) {
 // =====================================================================
 
 async function runGemini(audioBase64, key) {
-  if (!key) return { error: 'GEMINI_API_KEY environment variable not set.' };
+  if (!key) return { error: 'No Gemini API key provided. Enter one in the UI or set GEMINI_API_KEY in Vercel.', latency: 0 };
   
   const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`;
   const payload = {
@@ -178,7 +178,7 @@ async function runGemini(audioBase64, key) {
 }
 
 async function runOpenAI(audioBase64, key) {
-  if (!key) return { error: 'OPENAI_API_KEY environment variable not set.' };
+  if (!key) return { error: 'No OpenAI API key provided. Enter one in the UI or set OPENAI_API_KEY in Vercel.', latency: 0 };
   
   const url = "https://api.openai.com/v1/chat/completions";
   const payload = {
@@ -238,7 +238,7 @@ async function runOpenAI(audioBase64, key) {
 }
 
 async function runDeepSeek(audioFile, stats, deepseekKey, openaiKey) {
-  if (!deepseekKey) return { error: 'DEEPSEEK_API_KEY environment variable not set.' };
+  if (!deepseekKey) return { error: 'No DeepSeek API key provided. Enter one in the UI or set DEEPSEEK_API_KEY in Vercel.', latency: 0 };
   
   // Get Whisper Transcription
   let transcript = '[No transcription obtained]';
@@ -314,7 +314,7 @@ async function runDeepSeek(audioFile, stats, deepseekKey, openaiKey) {
 }
 
 async function runMiniMax(audioBase64, key) {
-  if (!key) return { error: 'MINIMAX_API_KEY environment variable not set.' };
+  if (!key) return { error: 'No MiniMax API key provided. Enter one in the UI or set MINIMAX_API_KEY in Vercel.', latency: 0 };
   
   const url = "https://api.minimax.io/v1/chat/completions";
   const payload = {
@@ -417,12 +417,12 @@ export async function POST(req) {
     // Parse acoustic features locally for DeepSeek
     const stats = parseWavStats(buffer.buffer);
     
-    // Load config keys
-    const geminiKey = process.env.GEMINI_API_KEY;
-    const openaiKey = process.env.OPENAI_API_KEY;
-    const deepseekKey = process.env.DEEPSEEK_API_KEY;
-    const minimaxKey = process.env.MINIMAX_API_KEY;
-    const renderUrl = process.env.RENDER_BACKEND_URL || 'http://localhost:8000';
+    // Prefer keys submitted from the UI, with server env vars as fallback.
+    const geminiKey = formData.get('key_gemini') || process.env.GEMINI_API_KEY;
+    const openaiKey = formData.get('key_openai') || process.env.OPENAI_API_KEY;
+    const deepseekKey = formData.get('key_deepseek') || process.env.DEEPSEEK_API_KEY;
+    const minimaxKey = formData.get('key_minimax') || process.env.MINIMAX_API_KEY;
+    const renderUrl = process.env.RENDER_BACKEND_URL || (process.env.NODE_ENV === 'production' ? '' : 'http://localhost:8000');
     
     const modelsToRun = modelSelection ? modelSelection.split(',') : ['tensorflow', 'gemini', 'openai', 'deepseek', 'minimax'];
     const results = {};

@@ -115,7 +115,7 @@ export default function Home() {
     }
 
     try {
-      const res = await fetch('/app/api/evaluate', {
+      const res = await fetch('/api/evaluate', {
         method: 'POST',
         body: formData
       });

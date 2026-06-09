@@ -1,4 +1,7 @@
 import os
+
+os.environ.setdefault("TF_USE_LEGACY_KERAS", "1")
+
 import shutil
 import tempfile
 import numpy as np
@@ -41,7 +44,7 @@ def load_models():
     # Load BERT
     try:
         tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
-        bert_model = TFBertModel.from_pretrained("bert-base-uncased", from_pt=True, use_safetensors=True)
+        bert_model = TFBertModel.from_pretrained("bert-base-uncased")
     except Exception as e:
         print(f"Error loading BERT: {e}")
         

@@ -11,6 +11,7 @@ from scipy.io import wavfile
 from pydub import AudioSegment
 import tensorflow as tf
 import tensorflow_hub as hub
+import keras
 from transformers import BertTokenizer, TFBertModel
 
 app = FastAPI(title="Audio Deepfake Detection TF API", version="1.0")
@@ -60,7 +61,7 @@ def load_models():
     if os.path.exists(model_file):
         print(f"Loading Keras Fusion Model from '{model_file}'...")
         try:
-            fusion_model = tf.keras.models.load_model(model_file)
+            fusion_model = keras.models.load_model(model_file, compile=False)
         except Exception as e:
             load_errors["keras_model"] = str(e)
             print(f"Error loading Keras model: {e}")

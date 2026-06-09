@@ -3,6 +3,7 @@ uvicorn
 python-multipart
 tensorflow-cpu
 tf-keras
+keras
 tensorflow-hub
 transformers<5.0
 scipy

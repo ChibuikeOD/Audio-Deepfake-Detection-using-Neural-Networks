@@ -48,7 +48,7 @@ def load_models():
     # Load BERT
     try:
         tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
-        bert_model = TFBertModel.from_pretrained("bert-base-uncased")
+        bert_model = TFBertModel.from_pretrained("bert-base-uncased", use_safetensors=False)
     except Exception as e:
         load_errors["bert"] = str(e)
         print(f"Error loading BERT: {e}")

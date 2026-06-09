@@ -2,6 +2,56 @@
 
 import { useState, useRef } from 'react';
 
+async function convertBlobToWav(blob) {
+  const arrayBuffer = await blob.arrayBuffer();
+  const AudioContext = window.AudioContext || window.webkitAudioContext;
+  const audioContext = new AudioContext();
+  const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+  await audioContext.close();
+  return audioBufferToWav(audioBuffer);
+}
+
+function audioBufferToWav(audioBuffer) {
+  const sampleRate = audioBuffer.sampleRate;
+  const numChannels = 1;
+  const samples = audioBuffer.length;
+  const bytesPerSample = 2;
+  const blockAlign = numChannels * bytesPerSample;
+  const dataSize = samples * blockAlign;
+  const buffer = new ArrayBuffer(44 + dataSize);
+  const view = new DataView(buffer);
+  const channelData = audioBuffer.getChannelData(0);
+
+  writeAscii(view, 0, 'RIFF');
+  view.setUint32(4, 36 + dataSize, true);
+  writeAscii(view, 8, 'WAVE');
+  writeAscii(view, 12, 'fmt ');
+  view.setUint32(16, 16, true);
+  view.setUint16(20, 1, true);
+  view.setUint16(22, numChannels, true);
+  view.setUint32(24, sampleRate, true);
+  view.setUint32(28, sampleRate * blockAlign, true);
+  view.setUint16(32, blockAlign, true);
+  view.setUint16(34, 16, true);
+  writeAscii(view, 36, 'data');
+  view.setUint32(40, dataSize, true);
+
+  let offset = 44;
+  for (let i = 0; i < samples; i++) {
+    const sample = Math.max(-1, Math.min(1, channelData[i]));
+    view.setInt16(offset, sample < 0 ? sample * 0x8000 : sample * 0x7fff, true);
+    offset += 2;
+  }
+
+  return new Blob([buffer], { type: 'audio/wav' });
+}
+
+function writeAscii(view, offset, text) {
+  for (let i = 0; i < text.length; i++) {
+    view.setUint8(offset + i, text.charCodeAt(i));
+  }
+}
+
 export default function Home() {
   const [file, setFile] = useState(null);
   const [audioUrl, setAudioUrl] = useState(null);
@@ -37,7 +87,10 @@ export default function Home() {
     
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+      const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+        ? 'audio/webm;codecs=opus'
+        : 'audio/webm';
+      const mediaRecorder = new MediaRecorder(stream, { mimeType });
       mediaRecorderRef.current = mediaRecorder;
       
       mediaRecorder.ondataavailable = (event) => {
@@ -47,14 +100,18 @@ export default function Home() {
       };
       
       mediaRecorder.onstop = async () => {
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/wav' });
-        const audioFile = new File([audioBlob], 'recorded_speech.wav', { type: 'audio/wav' });
-        
-        setFile(audioFile);
-        setAudioUrl(URL.createObjectURL(audioBlob));
-        
-        // Stop stream tracks
-        stream.getTracks().forEach(track => track.stop());
+        try {
+          const recordedBlob = new Blob(audioChunksRef.current, { type: mediaRecorder.mimeType });
+          const audioBlob = await convertBlobToWav(recordedBlob);
+          const audioFile = new File([audioBlob], 'recorded_speech.wav', { type: 'audio/wav' });
+          
+          setFile(audioFile);
+          setAudioUrl(URL.createObjectURL(audioBlob));
+        } catch (err) {
+          setError('Could not convert the recording to WAV for acoustic analysis.');
+        } finally {
+          stream.getTracks().forEach(track => track.stop());
+        }
       };
       
       mediaRecorder.start();

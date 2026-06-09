@@ -3,13 +3,16 @@ import { NextResponse } from 'next/server';
 export const dynamic = 'force-dynamic';
 
 // Parse basic WAV metrics in JS for DeepSeek reasoning fallback
-function parseWavStats(buffer) {
+function parseWavStats(input) {
   try {
+    const buffer = Buffer.isBuffer(input)
+      ? input.buffer.slice(input.byteOffset, input.byteOffset + input.byteLength)
+      : input;
     const view = new DataView(buffer);
     
     // Check RIFF header
     const isRiff = String.fromCharCode(view.getUint8(0), view.getUint8(1), view.getUint8(2), view.getUint8(3)) === 'RIFF';
-    if (!isRiff) return { error: 'Not a valid RIFF file' };
+    if (!isRiff) return { error: 'Acoustic stats are only available for WAV/RIFF audio in this evaluator.' };
     
     const sampleRate = view.getUint32(24, true);
     const numChannels = view.getUint16(22, true);
@@ -415,7 +418,7 @@ export async function POST(req) {
     const audioBase64 = buffer.toString('base64');
     
     // Parse acoustic features locally for DeepSeek
-    const stats = parseWavStats(buffer.buffer);
+    const stats = parseWavStats(buffer);
     
     // Prefer keys submitted from the UI, with server env vars as fallback.
     const geminiKey = formData.get('key_gemini') || process.env.GEMINI_API_KEY;

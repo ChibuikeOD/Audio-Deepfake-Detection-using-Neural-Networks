@@ -106,7 +106,13 @@ def health_check():
 @app.post("/predict")
 async def predict(file: UploadFile = File(...)):
     if not fusion_model:
-        raise HTTPException(status_code=503, detail="Keras classification model not loaded on server.")
+        raise HTTPException(
+            status_code=503,
+            detail={
+                "message": "Keras classification model not loaded on server.",
+                "load_errors": load_errors,
+            },
+        )
     if not yamnet_model or not bert_model:
         raise HTTPException(
             status_code=503,

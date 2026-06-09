@@ -1,4 +1,5 @@
 *.dat
+*.npy
 __pycache__/
 *.pyc
 node_modules/
@@ -8,6 +9,8 @@ node_modules/
 temp_converted.wav
 synthetic_audio.wav
 .ipynb_checkpoints/
+training_cache/
+training_history.csv
 *Zone.Identifier
 *zone.identifier
 *:Zone.Identifier
